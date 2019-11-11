@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require "xlsx2csv"
+
+Xlsx2csv::CLI.execute(ARGV)
