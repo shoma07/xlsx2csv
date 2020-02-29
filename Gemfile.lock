@@ -11,7 +11,7 @@ GEM
     minitest (5.13.0)
     nokogiri (1.10.5)
       mini_portile2 (~> 2.4.0)
-    rake (10.5.0)
+    rake (13.0.1)
     roo (2.8.2)
       nokogiri (~> 1)
       rubyzip (>= 1.2.1, < 2.0.0)
@@ -23,7 +23,7 @@ PLATFORMS
 DEPENDENCIES
   bundler (~> 2.0)
   minitest (~> 5.0)
-  rake (~> 10.0)
+  rake (~> 13.0)
   xlsx2csv!
 
 BUNDLED WITH
