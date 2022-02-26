@@ -1,10 +1,14 @@
-require "bundler/gem_tasks"
-require "rake/testtask"
+# frozen_string_literal: true
 
-Rake::TestTask.new(:test) do |t|
-  t.libs << "test"
-  t.libs << "lib"
-  t.test_files = FileList["test/**/*_test.rb"]
+require 'bundler/gem_tasks'
+
+require 'rubocop/rake_task'
+RuboCop::RakeTask.new(:lint) do |t|
+  t.options = %w[--parallel]
+end
+namespace :lint do
+  desc 'Lint fix (Rubocop)'
+  task fix: :auto_correct
 end
 
-task :default => :test
+task default: %i[lint]

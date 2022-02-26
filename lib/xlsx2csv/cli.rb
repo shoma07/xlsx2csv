@@ -1,6 +1,7 @@
+# frozen_string_literal: true
+
 module Xlsx2csv
   class CLI
-
     attr_accessor :options
 
     class << self
@@ -19,7 +20,7 @@ module Xlsx2csv
         dateformat: nil,
         floatformat: nil,
         ignoreempty: false,
-        sheetdelimiter: '--------',
+        sheetdelimiter: '--------'
       }
       parser.parse!(argv)
       @xlsxfile = argv.shift
@@ -29,90 +30,74 @@ module Xlsx2csv
     def parser
       opt = OptionParser.new
       opt.on('-a', '--all', TrueClass, 'export all sheets') do |v|
-        self.options[:all] = v
+        options[:all] = v
       end
-      opt.on('-s[=SHEETID]', '--sheet[=SHEETID]', Integer,
-             'sheet number to convert') do |v|
-        self.options[:sheet] = v
+      opt.on('-s[=SHEETID]', '--sheet[=SHEETID]', Integer, 'sheet number to convert') do |v|
+        options[:sheet] = v
       end
       opt.on('-n[=SHEETNAME]', '--sheetname[=SHEETNAME]', String,
              'sheet name to convert') do |v|
-        self.options[:sheetname] = v
+        options[:sheetname] = v
       end
-      delimiter_desc = <<~EOS
+      delimiter_description = <<~DESCRIPTION
         delimiter - columns delimiter in csv, 'tab' or 'x09'
                                              for a tab (default: comma ',')
-      EOS
-      opt.on('-d[=DELIMITER]', '--delimiter[=DELIMITER]', String,
-             delimiter_desc) do |v|
-        self.options[:delimiter] = v
+      DESCRIPTION
+      opt.on('-d[=DELIMITER]', '--delimiter[=DELIMITER]', String, delimiter_description) do |v|
+        options[:delimiter] = v
       end
-      lineterminator_desc = <<~EOS
+      lineterminator_desc = <<~DESCRIPTION
         line terminator - lines terminator in csv, '\\n' '\\r\\n'
                                              or '\\r' (default: \\r\\n)
-      EOS
+      DESCRIPTION
       opt.on('-l[=LINETERMINATOR]', '--lineterminator[=LINETERMINATOR]', String,
              lineterminator_desc) do |v|
-        self.options[:lineterminator] = v
+        options[:lineterminator] = v
       end
       opt.on('-f[=DATEFORMAT]', '--dateformat[=DATEFORMAT]', String,
              'override date/time format (ex. %Y/%m/%d)') do |v|
-        self.options[:dateformat] = v
+        options[:dateformat] = v
       end
       opt.on('--floatformat[=FLOATFORMAT]', String,
              'override float format (ex. %.15f)') do |v|
-        self.options[:floatformat] = v
+        options[:floatformat] = v
       end
       opt.on('-i', '--ignoreempty', TrueClass, 'skip empty lines') do |v|
-        self.options[:ignoreempty] = v
+        options[:ignoreempty] = v
       end
-      sheetdelimiter_desc = <<~EOS
+      sheetdelimiter_desc = <<~DESCRIPTION
         sheet delimiter used to separate sheets, pass '' if
                                              you do not need delimiter, or 'x07' or '\\f' for form
                                              feed (default: '#{options[:sheetdelimiter]}')
-      EOS
-      opt.on('-p[=SHEETDELIMITER]', '--sheetdelimiter[=SHEETDELIMITER]', String,
-             sheetdelimiter_desc) do |v|
-        self.options[:sheetdelimiter] = v
+      DESCRIPTION
+      opt.on('-p[=SHEETDELIMITER]', '--sheetdelimiter[=SHEETDELIMITER]', String, sheetdelimiter_desc) do |v|
+        options[:sheetdelimiter] = v
       end
       opt
     end
 
     def execute
-      if @xlsxfile.nil?
-        puts parser.help
-        exit 1
-      end
-      file = Roo::Spreadsheet.open(@xlsxfile)
-      sheets = []
-      if options[:all]
-        sheets = file.sheets.map { |sheet| file.sheet(sheet) }
-      elsif options[:sheetname]
-        sheets << file.sheet(options[:sheetname])
-      elsif options[:sheet]
-        sheets << file.sheet(options[:sheet])
-      else
-        sheets << file.sheet(0)
-      end
-      cont = CSV.generate(col_sep: options[:delimiter],
-                          row_sep: options[:lineterminator]) do |csv|
+      puts(parser.help) && exit(1) if @xlsxfile.nil?
+
+      sheets = get_sheets(@xlsxfile)
+      cont = CSV.generate(col_sep: options[:delimiter], row_sep: options[:lineterminator]) do |csv|
         sheets.each_with_index do |sheet, index|
-          sheet.each_row_streaming do |row|
-            values = []
-            row.each do |cell|
-              values << cell.value
-              # convert float, date etc...
-            end
-            csv << values
-          end
+          sheet.each_row_streaming { |row| csv << row.map(&:value) }
           csv << [options[:sheetdelimiter]] unless sheets[index + 1].nil?
         end
       end
-      if @output
-        File.write(@output, cont)
-      else
-        puts cont
-      end
+      @output ? File.write(@output, cont) : puts(cont)
+    end
+
+    # @param xlsxfile [String]
+    # @return [Array]
+    def get_sheets(xlsxfile)
+      file = Roo::Spreadsheet.open(xlsxfile).then do |file|
+      return file.sheets.map { file.sheet(_1) } if options[:all]
+      return [file.sheet(options[:sheetname])] if options[:sheetname]
+      return [file.sheet(options[:sheet])] if options[:sheet]
+
+      [file.sheet(0)]
     end
   end
 end

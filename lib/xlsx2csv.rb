@@ -1,4 +1,6 @@
-require "xlsx2csv/version"
+# frozen_string_literal: true
+
+require 'xlsx2csv/version'
 require 'csv'
 require 'optparse'
 require 'roo'
